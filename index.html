@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVCC Customer Locations with SharePoint Excel Data, Bold Tier Count, Slim Horizontal Buttons with Gap, Tier-Colored Buttons, Upper Right Buttons Adjusted</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+        .legend {
+            margin: 10px 20px;
+            padding: 8px;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .filters {
+            margin: 5px 20px;
+            padding: 5px;
+            background-color: #f0f0f0;
+            border-radius: 5px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            margin-right: 10px;
+        }
+        .count-group {
+            display: flex;
+            flex-direction: column;
+            margin-right: 10px;
+        }
+        .filter-group label, .count-group label {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        #stateFilter, #countyFilter {
+            padding: 5px;
+            font-size: 14px;
+            width: 200px;
+        }
+        #stateFilter {
+            height: 80px;
+        }
+        #recordCount {
+            font-style: italic;
+            flex-grow: 1;
+            min-width: 200px;
+        }
+        .button-container {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+        .button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .button-row button {
+            padding: 3px 8px;
+            font-size: 13px;
+            cursor: pointer;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            width: 140px;
+            text-align: center;
+        }
+        .button-row button:hover {
+            filter: brightness(85%);
+        }
+        #selectAllBtn, #deselectAllBtn, #exportBtn {
+            background-color: #3388ff;
+        }
+        #tier1GroupBtn {
+            background-color: rgba(255, 0, 0, 0.7);
+        }
+        #tier2GroupBtn {
+            background-color: rgba(30, 144, 255, 0.7);
+        }
+        #tier3GroupBtn {
+            background-color: rgba(255, 165, 0, 0.7);
+        }
+        #tier4GroupBtn {
+            background-color: rgba(128, 0, 128, 0.7);
+        }
+        #nanGroupBtn {
+            background-color: rgba(128, 128, 128, 0.7);
+        }
+        .tier-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 5px;
+            vertical-align: middle;
+            border: 1px solid #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="filters">
+        <div class="filter-group">
+            <label for="stateFilter">State (Hold Ctrl/Cmd for multiple):</label>
+            <select id="stateFilter" multiple size="5" onchange="updateCountyDropdown(); updateMap()">
+                <option value="all" selected>All States</option>
+                <option value="AK">AK</option>
+                <option value="AL">AL</option>
+                <option value="AR">AR</option>
+                <option value="AZ">AZ</option>
+                <option value="CA">CA</option>
+                <option value="CO">CO</option>
+                <option value="CT">CT</option>
+                <option value="DE">DE</option>
+                <option value="FL">FL</option>
+                <option value="GA">GA</option>
+                <option value="HI">HI</option>
+                <option value="IA">IA</option>
+                <option value="ID">ID</option>
+                <option value="IL">IL</option>
+                <option value="IN">IN</option>
+                <option value="KS">KS</option>
+                <option value="KY">KY</option>
+                <option value="LA">LA</option>
+                <option value="MA">MA</option>
+                <option value="MD">MD</option>
+                <option value="ME">ME</option>
+                <option value="MI">MI</option>
+                <option value="MN">MN</option>
+                <option value="MO">MO</option>
+                <option value="MS">MS</option>
+                <option value="MT">MT</option>
+                <option value="NC">NC</option>
+                <option value="ND">ND</option>
+                <option value="NE">NE</option>
+                <option value="NH">NH</option>
+                <option value="NJ">NJ</option>
+                <option value="NM">NM</option>
+                <option value="NV">NV</option>
+                <option value="NY">NY</option>
+                <option value="OH">OH</option>
+                <option value="OK">OK</option>
+                <option value="OR">OR</option>
+                <option value="PA">PA</option>
+                <option value="RI">RI</option>
+                <option value="SC">SC</option>
+                <option value="SD">SD</option>
+                <option value="TN">TN</option>
+                <option value="TX">TX</option>
+                <option value="UT">UT</option>
+                <option value="VA">VA</option>
+                <option value="VT">VT</option>
+                <option value="WA">WA</option>
+                <option value="WI">WI</option>
+                <option value="WV">WV</option>
+                <option value="WY">WY</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="countyFilter">County:</label>
+            <select id="countyFilter" onchange="updateMap()">
+                <option value="all">All Counties</option>
+            </select>
+        </div>
+        <div class="count-group">
+            <label>Record Count:</label>
+            <span id="recordCount"></span>
+        </div>
+    </div>
+    <div class="button-container">
+        <div class="button-group">
+            <div class="button-row">
+                <button id="selectAllBtn" onclick="selectAllTiers()">Select All Tiers</button>
+                <button id="deselectAllBtn" onclick="deselectAllTiers()">Deselect All Tiers</button>
+            </div>
+            <div class="button-row">
+                <button id="tier1GroupBtn" onclick="toggleTier1Group()">Tier 1 Group</button>
+                <button id="tier2GroupBtn" onclick="toggleTier2Group()">Tier 2 Group</button>
+                <button id="tier3GroupBtn" onclick="toggleTier3Group()">Tier 3 Group</button>
+                <button id="tier4GroupBtn" onclick="toggleTier4Group()">Tier 4 Group</button>
+                <button id="nanGroupBtn" onclick="toggleNANGroup()">NAN Group</button>
+                <button id="exportBtn" onclick="exportSelectedTiers()">Export Selected Tiers</button>
+            </div>
+        </div>
+    </div>
+    <div id="map"></div>
+    <div class="legend">
+        Legend: Pin Size by Tier<br>
+        <span><span class="tier-color" style="background-color: #FF0000;"></span>Tier 1A → Largest</span><br>
+        <span><span class="tier-color" style="background-color: #FF69B4;"></span>Tier 1B</span><br>
+        <span><span class="tier-color" style="background-color: #FF4500;"></span>Tier 1C</span><br>
+        <span><span class="tier-color" style="background-color: #32CD32;"></span>Tier 2A</span><br>
+        <span><span class="tier-color" style="background-color: #008000;"></span>Tier 2B</span><br>
+        <span><span class="tier-color" style="background-color: #00CED1;"></span>Tier 2C</span><br>
+        <span><span class="tier-color" style="background-color: #1E90FF;"></span>Tier 2D</span><br>
+        <span><span class="tier-color" style="background-color: #00B7EB;"></span>Tier 2E</span><br>
+        <span><span class="tier-color" style="background-color: #FFD700;"></span>Tier 3A</span><br>
+        <span><span class="tier-color" style="background-color: #FFA500;"></span>Tier 3B</span><br>
+        <span><span class="tier-color" style="background-color: #800080;"></span>Tier 4A</span><br>
+        <span><span class="tier-color" style="background-color: #808080;"></span>Tier NAN → Smallest</span>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://alcdn.msauth.net/browser/2.30.0/js/msal-browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // MSAL configuration
+        const msalConfig = {
+            auth: {
+                clientId: 'YOUR_CLIENT_ID', // Replace with your Azure AD app client ID
+                authority: 'https://login.microsoftonline.com/organizations',
+                redirectUri: 'https://lexisnexisspecialservices.sharepoint.com/sites/SalesGotoMarket/Shared%20Documents/Forms/AllItems.aspx?id=%2Fsites%2FSalesGotoMarket%2FShared%20Documents%2FMap%2FAVCC%5FCustomer%5FMap%2Ehtml%2Ehtml&parent=%2Fsites%2FSalesGotoMarket%2FShared%20Documents%2FMap&p=true&ga=1' // Replace with your SharePoint-hosted HTML URL after hosting
+            }
+        };
+        const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+        // Data placeholder
+        let data = [];
+
+        // Load data from SharePoint using Graph API
+        async function loadData() {
+            try {
+                const accounts = msalInstance.getAllAccounts();
+                let accessToken;
+                if (accounts.length === 0) {
+                    const loginResponse = await msalInstance.loginPopup({
+                        scopes: ['Files.Read.All']
+                    });
+                    accessToken = loginResponse.accessToken;
+                } else {
+                    const tokenResponse = await msalInstance.acquireTokenSilent({
+                        scopes: ['Files.Read.All'],
+                        account: accounts[0]
+                    });
+                    accessToken = tokenResponse.accessToken;
+                }
+
+                // Encode the SharePoint sharing URL for Graph API
+                const shareUrl = 'https://lexisnexisspecialservices-my.sharepoint.com/:x:/g/personal/eliott_cohen_lnssi_com/EWlF_NkvcKpJt8i2kklH8bkBcjagJKDC97xMHitxA5sNCg';
+                const encodedShareUrl = btoa(shareUrl);
+                const graphUrl = `https://graph.microsoft.com/v1.0/shares/u!${encodedShareUrl}/root/content`;
+
+                // Fetch the Excel file
+                const response = await fetch(graphUrl, {
+                    headers: {
+                        Authorization: `Bearer ${accessToken}`
+                    }
+                });
+                if (!response.ok) throw new Error(`Failed to load data: ${response.status}`);
+
+                // Read Excel file as binary
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const sheet = workbook.Sheets[sheetName];
+                data = XLSX.utils.sheet_to_json(sheet, { header: ['State', 'Agency', 'County', 'Latitude', 'Longitude', 'Address', 'AVCC', 'Tier'], skipHeader: true });
+
+                console.log('Data loaded:', data.length, 'records');
+                updateCountyDropdown();
+                updateMap();
+                selectAllTiers();
+            } catch (error) {
+                console.error('Error loading data from SharePoint:', error);
+                alert('Failed to load data. Please sign in or check console.');
+                data = [];
+                updateCountyDropdown();
+                updateMap();
+                selectAllTiers();
+            }
+        }
+
+        // Initialize the map, centered on US by default
+        const map = L.map('map').setView([39.8283, -98.5795], 4);
+
+        // Add OpenStreetMap tiles
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Define marker sizes and colors based on tier
+        const tierStyles = {
+            '1A': { size: 14, color: '#FF0000' },
+            '1B': { size: 14, color: '#FF69B4' },
+            '1C': { size: 14, color: '#FF4500' },
+            '2A': { size: 12, color: '#32CD32' },
+            '2B': { size: 12, color: '#008000' },
+            '2C': { size: 12, color: '#00CED1' },
+            '2D': { size: 12, color: '#1E90FF' },
+            '2E': { size: 12, color: '#00B7EB' },
+            '3A': { size: 10, color: '#FFD700' },
+            '3B': { size: 10, color: '#FFA500' },
+            '4A': { size: 8, color: '#800080' },
+            'NAN': { size: 8, color: '#808080' }
+        };
+
+        // Define state centers and zoom levels
+        const stateCenters = {
+            'all': { center: [39.8283, -98.5795], zoom: 4 },
+            'AK': { center: [64.2008, -149.4937], zoom: 4 },
+            'AL': { center: [32.8065, -86.7911], zoom: 7 },
+            'AR': { center: [34.9697, -92.3731], zoom: 7 },
+            'AZ': { center: [34.0489, -111.0937], zoom: 6 },
+            'CA': { center: [36.7783, -119.4179], zoom: 6 },
+            'CO': { center: [39.1130, -105.3589], zoom: 7 },
+            'CT': { center: [41.5998, -72.6995], zoom: 8 },
+            'DE': { center: [39.1453, -75.4189], zoom: 8 },
+            'FL': { center: [28.3287, -81.7587], zoom: 7 },
+            'GA': { center: [32.8417, -83.5913], zoom: 7 },
+            'HI': { center: [20.9207, -157.8317], zoom: 7 },
+            'IA': { center: [42.0329, -93.5815], zoom: 7 },
+            'ID': { center: [44.2405, -114.4788], zoom: 6 },
+            'IL': { center: [40.3495, -88.9861], zoom: 7 },
+            'IN': { center: [39.8494, -86.2583], zoom: 7 },
+            'KS': { center: [38.5266, -96.7265], zoom: 7 },
+            'KY': { center: [37.6681, -84.6701], zoom: 7 },
+            'LA': { center: [31.2448, -92.1450], zoom: 7 },
+            'MA': { center: [42.2302, -71.5301], zoom: 8 },
+            'MD': { center: [39.0639, -76.8021], zoom: 8 },
+            'ME': { center: [44.6939, -69.3819], zoom: 7 },
+            'MI': { center: [43.3266, -84.5361], zoom: 7 },
+            'MN': { center: [45.6947, -93.9002], zoom: 7 },
+            'MO': { center: [38.3047, -92.4371], zoom: 7 },
+            'MS': { center: [32.7416, -89.6787], zoom: 7 },
+            'MT': { center: [46.9219, -110.4544], zoom: 6 },
+            'NC': { center: [35.6301, -79.8064], zoom: 7 },
+            'ND': { center: [47.5289, -99.7840], zoom: 7 },
+            'NE': { center: [41.4925, -99.9018], zoom: 7 },
+            'NH': { center: [43.4525, -71.5639], zoom: 8 },
+            'NJ': { center: [40.2989, -74.5210], zoom: 8 },
+            'NM': { center: [34.8405, -106.2485], zoom: 7 },
+            'NV': { center: [38.8026, -116.4194], zoom: 6 },
+            'NY': { center: [42.1657, -74.9481], zoom: 7 },
+            'OH': { center: [40.4173, -82.9071], zoom: 7 },
+            'OK': { center: [35.5653, -96.9289], zoom: 7 },
+            'OR': { center: [44.5720, -120.5014], zoom: 7 },
+            'PA': { center: [40.5908, -77.2098], zoom: 7 },
+            'RI': { center: [41.6809, -71.5118], zoom: 9 },
+            'SC': { center: [33.8569, -80.9450], zoom: 7 },
+            'SD': { center: [44.1153, -99.4919], zoom: 7 },
+            'TN': { center: [35.7478, -86.6923], zoom: 7 },
+            'TX': { center: [31.0545, -97.5635], zoom: 6 },
+            'UT': { center: [39.4998, -111.5470], zoom: 7 },
+            'VA': { center: [37.7693, -78.1700], zoom: 7 },
+            'VT': { center: [44.0459, -72.7107], zoom: 8 },
+            'WA': { center: [47.4009, -120.7401], zoom: 7 },
+            'WI': { center: [44.7863, -89.8267], zoom: 7 },
+            'WV': { center: [38.4912, -80.9545], zoom: 7 },
+            'WY': { center: [42.7550, -107.3025], zoom: 7 }
+        };
+
+        // Create marker cluster groups for each tier
+        const tierGroups = {
+            'Tier 1A': L.markerClusterGroup(),
+            'Tier 1B': L.markerClusterGroup(),
+            'Tier 1C': L.markerClusterGroup(),
+            'Tier 2A': L.markerClusterGroup(),
+            'Tier 2B': L.markerClusterGroup(),
+            'Tier 2C': L.markerClusterGroup(),
+            'Tier 2D': L.markerClusterGroup(),
+            'Tier 2E': L.markerClusterGroup(),
+            'Tier 3A': L.markerClusterGroup(),
+            'Tier 3B': L.markerClusterGroup(),
+            'Tier 4A': L.markerClusterGroup(),
+            'Tier NAN': L.markerClusterGroup()
+        };
+
+        const geoJsonUrl = 'https://raw.githubusercontent.com/holtzy/The-Python-Graph-Gallery/master/static/data/US-counties.geojson';
+        const stateToFips = {
+            'AK': '02', 'AL': '01', 'AR': '05', 'AZ': '04', 'CA': '06', 'CO': '08', 'CT': '09', 'DE': '10',
+            'FL': '12', 'GA': '13', 'HI': '15', 'IA': '19', 'ID': '16', 'IL': '17', 'IN': '18',
+            'KS': '20', 'KY': '21', 'LA': '22', 'MA': '25', 'MD': '24', 'ME': '23', 'MI': '26',
+            'MN': '27', 'MO': '29', 'MS': '28', 'MT': '30', 'NC': '37', 'ND': '38', 'NE': '31',
+            'NH': '33', 'NJ': '34', 'NM': '35', 'NV': '32', 'NY': '36', 'OH': '39', 'OK': '40',
+            'OR': '41', 'PA': '42', 'RI': '44', 'SC': '45', 'SD': '46', 'TN': '47', 'TX': '48',
+            'UT': '49', 'VA': '51', 'VT': '50', 'WA': '53', 'WI': '55', 'WV': '54', 'WY': '56'
+        };
+        const fipsToState = Object.fromEntries(Object.entries(stateToFips).map(([k, v]) => [v, k]));
+
+        let geoData;
+        let currentLayer;
+
+        function onEachFeature(feature, layer) {
+            const props = feature.properties;
+            const countyName = props.NAME || 'Unknown County';
+            const stateName = fipsToState[props.STATE] || 'Unknown State';
+            const popupContent = `<b>${countyName}</b><br>State: ${stateName}`;
+            layer.bindPopup(popupContent);
+        }
+
+        function escapeCsvValue(value) {
+            if (value == null) return '';
+            const stringValue = value.toString();
+            if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                return `"${stringValue.replace(/"/g, '""')}"`;
+            }
+            return stringValue;
+        }
+
+        function exportSelectedTiers() {
+            const stateDropdown = document.getElementById('stateFilter');
+            const selectedStates = Array.from(stateDropdown.selectedOptions).map(option => option.value);
+            const selectedCounty = document.getElementById('countyFilter').value;
+
+            let filteredData = selectedStates.includes('all') ? data : data.filter(customer => selectedStates.includes(customer.State));
+            if (selectedCounty !== 'all') {
+                filteredData = filteredData.filter(customer => customer.County === selectedCounty);
+            }
+
+            const visibleData = filteredData.filter(customer => {
+                const tierKey = `Tier ${customer.Tier}`;
+                return tierGroups[tierKey] && map.hasLayer(tierGroups[tierKey]);
+            });
+
+            if (visibleData.length === 0) {
+                alert('No records to export for the selected tiers and filters.');
+                return;
+            }
+
+            const headers = ['State', 'Agency', 'County', 'Latitude', 'Longitude', 'Address', 'AVCC', 'Tier'];
+            const csvRows = [headers.map(escapeCsvValue).join(',')];
+
+            visibleData.forEach(customer => {
+                const row = [
+                    customer.State,
+                    customer.Agency,
+                    customer.County,
+                    customer.Latitude,
+                    customer.Longitude,
+                    customer.Address,
+                    customer.AVCC,
+                    customer.Tier
+                ].map(escapeCsvValue);
+                csvRows.push(row.join(','));
+            });
+
+            const csvContent = csvRows.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'selected_tiers_export.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function updateRecordCount() {
+            const stateDropdown = document.getElementById('stateFilter');
+            const selectedStates = Array.from(stateDropdown.selectedOptions).map(option => option.value);
+            const selectedCounty = document.getElementById('countyFilter').value;
+
+            let filteredData = selectedStates.includes('all') ? data : data.filter(customer => selectedStates.includes(customer.State));
+            if (selectedCounty !== 'all') {
+                filteredData = filteredData.filter(customer => customer.County === selectedCounty);
+            }
+
+            const tierCounts = {};
+            filteredData.forEach(customer => {
+                const tierKey = `Tier ${customer.Tier}`;
+                if (tierGroups[tierKey] && map.hasLayer(tierGroups[tierKey])) {
+                    tierCounts[customer.Tier] = (tierCounts[customer.Tier] || 0) + 1;
+                }
+            });
+
+            const totalCount = Object.values(tierCounts).reduce((sum, count) => sum + count, 0);
+            const countDisplay = Object.entries(tierCounts)
+                .map(([tier, count]) => `<b>${tier}</b>: ${count}`)
+                .join(', ');
+            document.getElementById('recordCount').innerHTML = countDisplay ? `Tier: ${countDisplay} (${totalCount} records)` : 'No records';
+        }
+
+        function selectAllTiers() {
+            Object.values(tierGroups).forEach(group => {
+                if (!map.hasLayer(group)) {
+                    map.addLayer(group);
+                }
+            });
+            updateRecordCount();
+        }
+
+        function deselectAllTiers() {
+            Object.values(tierGroups).forEach(group => {
+                if (map.hasLayer(group)) {
+                    map.removeLayer(group);
+                }
+            });
+            updateRecordCount();
+        }
+
+        function toggleTier1Group() {
+            Object.values(tierGroups).forEach(group => map.removeLayer(group));
+            ['Tier 1A', 'Tier 1B', 'Tier 1C'].forEach(tier => map.addLayer(tierGroups[tier]));
+            updateRecordCount();
+        }
+
+        function toggleTier2Group() {
+            Object.values(tierGroups).forEach(group => map.removeLayer(group));
+            ['Tier 2A', 'Tier 2B', 'Tier 2C', 'Tier 2D', 'Tier 2E'].forEach(tier => map.addLayer(tierGroups[tier]));
+            updateRecordCount();
+        }
+
+        function toggleTier3Group() {
+            Object.values(tierGroups).forEach(group => map.removeLayer(group));
+            ['Tier 3A', 'Tier 3B'].forEach(tier => map.addLayer(tierGroups[tier]));
+            updateRecordCount();
+        }
+
+        function toggleTier4Group() {
+            Object.values(tierGroups).forEach(group => map.removeLayer(group));
+            map.addLayer(tierGroups['Tier 4A']);
+            updateRecordCount();
+        }
+
+        function toggleNANGroup() {
+            Object.values(tierGroups).forEach(group => map.removeLayer(group));
+            map.addLayer(tierGroups['Tier NAN']);
+            updateRecordCount();
+        }
+
+        function updateCountyDropdown() {
+            const stateDropdown = document.getElementById('stateFilter');
+            const selectedStates = Array.from(stateDropdown.selectedOptions).map(option => option.value);
+            const countyDropdown = document.getElementById('countyFilter');
+            countyDropdown.innerHTML = '';
+
+            let counties = [];
+            if (selectedStates.includes('all')) {
+                counties = [{key: 'all', name: 'All Counties'}];
+            } else {
+                counties = [...new Set(data
+                    .filter(customer => selectedStates.includes(customer.State))
+                    .map(customer => customer.County))]
+                    .sort()
+                    .map(county => ({key: county, name: county}));
+                counties.unshift({key: 'all', name: 'All Counties'});
+            }
+
+            counties.forEach(county => {
+                const option = new Option(county.name, county.key);
+                countyDropdown.add(option);
+            });
+        }
+
+        function updateMap() {
+            const stateDropdown = document.getElementById('stateFilter');
+            const selectedStates = Array.from(stateDropdown.selectedOptions).map(option => option.value);
+            const selectedCounty = document.getElementById('countyFilter').value;
+
+            Object.values(tierGroups).forEach(group => group.clearLayers());
+
+            let filteredData = selectedStates.includes('all') ? data : data.filter(customer => selectedStates.includes(customer.State));
+            if (selectedCounty !== 'all') {
+                filteredData = filteredData.filter(customer => customer.County === selectedCounty);
+            }
+
+            filteredData.forEach(customer => {
+                const lat = parseFloat(customer.Latitude);
+                const lon = parseFloat(customer.Longitude);
+                const tier = customer.Tier;
+                const agency = customer.Agency;
+                const address = customer.Address;
+                const county = customer.County;
+
+                if (isNaN(lat) || isNaN(lon) || !lat || !lon) {
+                    console.warn(`Invalid coordinates for ${agency}: lat=${lat}, lon=${lon}`);
+                    return;
+                }
+
+                const markerStyle = tierStyles[tier] || { size: 8, color: '#808080' };
+
+                try {
+                    const marker = L.circleMarker([lat, lon], {
+                        radius: markerStyle.size,
+                        color: markerStyle.color,
+                        fillColor: markerStyle.color,
+                        fillOpacity: 0.8
+                    });
+
+                    const popupContent = `
+                        <b>${agency}</b><br>
+                        Address: ${address}<br>
+                        Tier: ${tier}<br>
+                        County: ${county}
+                    `;
+                    marker.bindPopup(popupContent);
+
+                    const tierKey = `Tier ${tier}`;
+                    if (tierGroups[tierKey]) {
+                        tierGroups[tierKey].addLayer(marker);
+                    } else {
+                        console.warn(`Invalid tier for ${agency}: ${tier}`);
+                    }
+                } catch (e) {
+                    console.error(`Error creating marker for ${agency}: ${e}`);
+                }
+            });
+
+            updateRecordCount();
+
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+                currentLayer = null;
+            }
+
+            let filteredFeatures = geoData ? geoData.features : [];
+
+            if (!selectedStates.includes('all') && geoData) {
+                const selectedFips = selectedStates.map(state => stateToFips[state]).filter(fips => fips);
+                if (selectedFips.length > 0) {
+                    filteredFeatures = filteredFeatures.filter(f => selectedFips.includes(f.properties.STATE));
+
+                    if (selectedCounty !== 'all') {
+                        filteredFeatures = filteredFeatures.filter(f => 
+                            f.properties.NAME.toLowerCase().includes(selectedCounty.toLowerCase()) ||
+                            selectedCounty.toLowerCase().includes(f.properties.NAME.toLowerCase())
+                        );
+                    }
+
+                    if (filteredFeatures.length > 0) {
+                        currentLayer = L.geoJSON({ type: 'FeatureCollection', features: filteredFeatures }, {
+                            style: { color: '#000', weight: 1, fillOpacity: 0 },
+                            onEachFeature: onEachFeature,
+                            interactive: false
+                        }).addTo(map);
+                        map.fitBounds(currentLayer.getBounds());
+                    } else {
+                        console.warn(`No matching GeoJSON features for states: ${selectedStates}, county: ${selectedCounty}`);
+                        const bounds = selectedStates.reduce((acc, state) => {
+                            const { center } = stateCenters[state] || stateCenters['all'];
+                            return acc.extend(center);
+                        }, L.latLngBounds());
+                        map.fitBounds(bounds);
+                    }
+                }
+            } else {
+                map.setView(stateCenters['all'].center, stateCenters['all'].zoom);
+            }
+        }
+
+        const layerControl = {
+            base_layers: {
+                "OpenStreetMap": osmLayer
+            },
+            overlays: {
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#FF0000; margin-right:5px; border:1px solid #000;"></span>Tier 1A</span>': tierGroups['Tier 1A'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#FF69B4; margin-right:5px; border:1px solid #000;"></span>Tier 1B</span>': tierGroups['Tier 1B'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#FF4500; margin-right:5px; border:1px solid #000;"></span>Tier 1C</span>': tierGroups['Tier 1C'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#32CD32; margin-right:5px; border:1px solid #000;"></span>Tier 2A</span>': tierGroups['Tier 2A'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#008000; margin-right:5px; border:1px solid #000;"></span>Tier 2B</span>': tierGroups['Tier 2B'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#00CED1; margin-right:5px; border:1px solid #000;"></span>Tier 2C</span>': tierGroups['Tier 2C'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#1E90FF; margin-right:5px; border:1px solid #000;"></span>Tier 2D</span>': tierGroups['Tier 2D'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#00B7EB; margin-right:5px; border:1px solid #000;"></span>Tier 2E</span>': tierGroups['Tier 2E'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#FFD700; margin-right:5px; border:1px solid #000;"></span>Tier 3A</span>': tierGroups['Tier 3A'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#FFA500; margin-right:5px; border:1px solid #000;"></span>Tier 3B</span>': tierGroups['Tier 3B'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#800080; margin-right:5px; border:1px solid #000;"></span>Tier 4A</span>': tierGroups['Tier 4A'],
+                '<span><span style="display:inline-block; width:12px; height:12px; background-color:#808080; margin-right:5px; border:1px solid #000;"></span>Tier NAN</span>': tierGroups['Tier NAN']
+            }
+        };
+
+        const control = L.control.layers(
+            layerControl.base_layers,
+            layerControl.overlays,
+            { autoZIndex: true, collapsed: false, position: 'topright' }
+        ).addTo(map);
+
+        map.on('overlayadd overlayremove', function () {
+            updateRecordCount();
+        });
+
+        fetch(geoJsonUrl)
+            .then(response => {
+                if (!response.ok) throw new Error('GeoJSON fetch failed');
+                return response.json();
+            })
+            .then(d => {
+                geoData = d;
+                console.log('GeoJSON loaded successfully');
+                loadData();
+            })
+            .catch(error => {
+                console.error('Error fetching GeoJSON:', error);
+                loadData();
+            });
+    </script>
+</body>
+</html>
+```
